@@ -1,0 +1,49 @@
+[project]
+name = "agent_torch_visualize"
+version = "0.1.0"
+description = "visualizing large population models"
+readme = "readme.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Vedant Kulkarni"},
+]
+requires-python = ">= 3.8"
+dependencies = [
+    "numpy",
+    "pandas",
+    "torch",
+    "torch_geometric",
+    "omegaconf",
+    "asyncio",
+    "langchain",
+    "langchain-openai",
+    "networkx",
+    "dspy"
+]
+
+[project.urls]
+Homepage = "https://lpm.media.mit.edu/docs"
+Issues = "https://github.com/AgentTorch/visualize/issues"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[tool.bumpver]
+current_version = "0.1.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "chore: {old_version} -> {new_version}"
+tag_scope = "default"
+tag_message = "v{new_version}"
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"'
+]
