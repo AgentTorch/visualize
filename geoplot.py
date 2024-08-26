@@ -216,9 +216,7 @@ class GeoPlot:
 
             coords = np.array(read_var(final_state, entity_position)).tolist()
             values.append(
-                np.array(read_var(final_state, entity_property))
-                .flatten()
-                .tolist()
+                np.array(read_var(final_state, entity_property)).flatten().tolist()
             )
 
         start_time = pd.Timestamp.utcnow()
