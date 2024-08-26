@@ -11,14 +11,6 @@ requires-python = ">= 3.8"
 dependencies = [
     "numpy",
     "pandas",
-    "torch",
-    "torch_geometric",
-    "omegaconf",
-    "asyncio",
-    "langchain",
-    "langchain-openai",
-    "networkx",
-    "dspy"
 ]
 
 [project.urls]
