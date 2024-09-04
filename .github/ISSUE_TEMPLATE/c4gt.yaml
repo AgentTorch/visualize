@@ -87,6 +87,7 @@ body:
         - ShikshaLokam
         - Tech4Dev
         - Tibil
+        - AgentTorch
     validations:
       required: true
 
