@@ -17,18 +17,17 @@ from agent_torch.visualize import GeoPlot
 # ...
 
 # create a visualizer
-geoplot = GeoPlot(config, token)
+engine = GeoPlot(config, {
+  cesium_token: "...",
+  step_time: 3600,
+  coordinates = "agents/consumers/coordinates",
+  feature = "agents/consumers/money_spent",
+})
 
 # visualize in the runner-loop
 for i in range(0, num_episodes):
   runner.step(num_steps_per_episode)
-
-  geoplot.visualize(
-    name = f"consumer-money-spent-{i}",
-    state_trajectory = runner.state_trajectory,
-    entity_position = "consumers/coordinates",
-    entity_property = "consumers/money_spent",
-  )
+  engine.render(runner.state_trajectory)
 ```
 """
 
@@ -78,7 +77,7 @@ geoplot_template = """
 				result.green =
 					color1.green + factor * (color2.green - color1.green)
 				result.blue = color1.blue + factor * (color2.blue - color1.blue)
-				result.alpha =
+				result.alpha = '$visualType' == 'size' ? 0.2 :
 					color1.alpha + factor * (color2.alpha - color1.alpha)
 				return result
 			}
@@ -90,6 +89,11 @@ geoplot_template = """
 					Cesium.Color.RED,
 					factor
 				)
+			}
+
+			function getPixelSize(value, min, max) {
+				const factor = (value - min) / (max - min)
+				return 100 * (1 + factor)
 			}
 
 			function processTimeSeriesData(geoJsonData) {
@@ -137,7 +141,7 @@ geoplot_template = """
 						]),
 						position: new Cesium.SampledPositionProperty(),
 						point: {
-							pixelSize: 10,
+							pixelSize: '$visualType' == 'size' ? new Cesium.SampledProperty(Number) : 10,
 							color: new Cesium.SampledProperty(Cesium.Color),
 						},
 						properties: {
@@ -160,6 +164,17 @@ geoplot_template = """
 								timeSeriesData.maxValue
 							)
 						)
+
+						if ('$visualType' == 'size') {
+						  entity.point.pixelSize.addSample(
+  							time,
+  							getPixelSize(
+  								value,
+  								timeSeriesData.minValue,
+  								timeSeriesData.maxValue
+  							)
+  						)
+						}
 					})
 
 					dataSource.entities.add(entity)
@@ -203,25 +218,38 @@ def read_var(state, var):
 
 
 class GeoPlot:
-    def __init__(self, config, cesium_token):
+    def __init__(self, config, options):
         self.config = config
-        self.cesium_token = cesium_token
+        (
+            self.cesium_token,
+            self.step_time,
+            self.entity_position,
+            self.entity_property,
+            self.visualization_type,
+        ) = (
+            options["cesium_token"],
+            options["step_time"],
+            options["coordinates"],
+            options["feature"],
+            options["visualization_type"],
+        )
 
-    def visualize(self, name, state_trajectory, entity_position, entity_property):
+    def render(self, state_trajectory):
         coords, values = [], []
+        name = self.config["simulation_metadata"]["name"]
         geodata_path, geoplot_path = f"{name}.geojson", f"{name}.html"
 
         for i in range(0, len(state_trajectory) - 1):
             final_state = state_trajectory[i][-1]
 
-            coords = np.array(read_var(final_state, entity_position)).tolist()
+            coords = np.array(read_var(final_state, self.entity_position)).tolist()
             values.append(
-                np.array(read_var(final_state, entity_property)).flatten().tolist()
+                np.array(read_var(final_state, self.entity_property)).flatten().tolist()
             )
 
         start_time = pd.Timestamp.utcnow()
         timestamps = [
-            start_time + pd.Timedelta(seconds=i * 3600)
+            start_time + pd.Timedelta(seconds=i * self.step_time)
             for i in range(
                 self.config["simulation_metadata"]["num_episodes"]
                 * self.config["simulation_metadata"]["num_steps_per_episode"]
@@ -259,6 +287,7 @@ class GeoPlot:
                         "startTime": timestamps[0].isoformat(),
                         "stopTime": timestamps[-1].isoformat(),
                         "data": json.dumps(geojsons),
+                        "visualType": self.visualization_type,
                     }
                 )
             )
